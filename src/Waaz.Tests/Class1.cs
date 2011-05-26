@@ -14,7 +14,7 @@ namespace Waaz.Tests
     [TestFixture]
     internal class SomeTests
     {
-        private class Policy1 : PolicyFor<string>
+        private class Policy1 : AuthorizationPolicyFor<string>
         {
             public Policy1()
             {

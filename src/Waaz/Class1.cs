@@ -175,11 +175,18 @@ namespace Waaz
         }
     }
 
-    public abstract class PolicyFor<ST> : Policy
+    public abstract class AuthorizationPolicyFor<ST> : Policy
     {
         public OperPredAndRuleBuilder For(Pred<HttpOperationDescription> p)
         {
             return new OperPredAndRuleBuilder(this, p);
+        }
+
+        public OperPredAndRuleBuilder ForServiceMethod(Expression<Action<ST>> e)
+        {
+            var body = e.Body as MethodCallExpression;
+            if(body == null) throw new Exception("Invalid method expression");
+            return new OperPredAndRuleBuilder(this, new Pred<HttpOperationDescription>(od => od.ToOperationDescription().SyncMethod == body.Method));
         }
 
         protected OperPredAndRuleBuilder ForAll
@@ -206,6 +213,11 @@ namespace Waaz
         {
             get { return Pred<HttpOperationDescription>.Make(od => od.GetHttpMethod() == HttpMethod.Get); }
         }
+
+        protected Pred<HttpOperationDescription> OperationNamed(string name)
+        {
+            return Pred<HttpOperationDescription>.Make(od => od.Name == name);
+        }
     }
 
 
@@ -216,6 +228,11 @@ namespace Waaz
             return rb.DefinePredicate(new PrincipalPredOperationHandler(p => p.IsInRole(role)));
         }
 
+        public static OperPredAndRuleBuilder IfInRoles(this OperRuleBuilder rb, Pred<IPrincipal> p)
+        {
+            return rb.DefinePredicate(new PrincipalPredOperationHandler(p));
+        }
+
         public static OperPredAndRuleBuilder IfAuthenticated(this OperRuleBuilder rb)
         {
             return rb.DefinePredicate(new PrincipalPredOperationHandler(p => p.Identity.IsAuthenticated));
@@ -224,6 +241,11 @@ namespace Waaz
         public static OperPredAndRuleBuilder IfAnonymous(this OperRuleBuilder rb)
         {
             return rb.DefinePredicate(new PrincipalPredOperationHandler(p => !p.Identity.IsAuthenticated));
+        }
+
+        public static OperPredAndRuleBuilder User(this OperRuleBuilder rb, string name)
+        {
+            return rb.DefinePredicate(new PrincipalPredOperationHandler(p => p.Identity.Name == name));
         }
     }
 

@@ -21,30 +21,39 @@ namespace Waaz.Tests
     {
 
         [ServiceContract]
-        private class TheService
+        public class TheService
         {
             [WebGet(UriTemplate = "/{user}/{id}")]
-            string Get(string user, int id){ return ""; }
+            public string GetOper(string user, int id){ return ""; }
 
             [WebInvoke(Method = "POST", UriTemplate = "/{user}")]
-            string Post(string user, JsonValue v) { return ""; }
+            public string PostOper(string user, JsonValue v) { return ""; }
 
             [WebInvoke(Method = "PUT",UriTemplate = "/{user}/{id}")]
-            string Put(string user, int id, JsonValue v) { return ""; }
+            public string PutOper(string user, int id, JsonValue v) { return ""; }
 
             [WebInvoke(Method = "DELETE", UriTemplate = "/{user}/{id}")]
-            string Delete(string user, int id) { return ""; }
+            public string DeleteOper(string user, int id) { return ""; }
         }
 
-        private class TestPolicy1 : PolicyFor<string>
+        private class TestPolicy1 : AuthorizationPolicyFor<TheService>
         {
+            Role admin = new Role("admin");
+            Role root = new Role("root");
+
             public TestPolicy1()
             {
                 ForAll.Deny.IfAnonymous();
-                ForAll.Allow.Role("admin");
+                //ForAll.Allow.Role("admin");
+                ForAll.Allow.IfInRoles(admin || root);
                 For(Get).Allow.IfAuthenticated();
-                For(Post || Put || Delete).Allow.If<string, IPrincipal>(
+                // alt: For(OperationNamed("GetOper")).Allow.IfAuthenticated();
+                // alt: ForServiceMethod(s => s.GetOper(default(string), default(int))).Allow.IfAuthenticated();
+                For(Post || Put).Allow.If<string, IPrincipal>(
                     (user, principal) => user == principal.Identity.Name);
+
+                ForServiceMethod(s => s.DeleteOper(default(string), default(int)))
+                    .Allow.If<string, IPrincipal>((user, principal) => user == principal.Identity.Name);
             }
         }
 
@@ -88,80 +97,12 @@ namespace Waaz.Tests
             Assert.AreEqual(HttpStatusCode.OK, ctx.Send(HttpMethod.Delete, "/Alice/1"));
         }
 
-
-
-
-        class IntegrationContext<T>
+        readonly IPrincipal Root = new GenericPrincipal(new GenericIdentity("Alice", "type"), new string[] { "root" });
+        [Test]
+        public void When_Delete_by_Root_to_another_user_then_access_should_be_granted()
         {
-            private readonly IPrincipal _princ;
-            private readonly Policy _policy;
-
-            public IntegrationContext(IPrincipal princ, Policy policy)
-            {
-                _princ = princ;
-                _policy = policy;
-            }
-
-            public HttpStatusCode Send(HttpMethod method, string uri)
-            {
-                uri = "http://localhost:8080" + uri;
-                var cfg = HttpHostConfiguration.Create()
-                    .SetOperationHandlerFactory(new IntegrationFactory(_princ, _policy));
-                using (var host = new HttpConfigurableServiceHost(typeof(T), cfg, new Uri("http://localhost:8080")))
-                {
-
-                    host.Open();
-                    var client = new HttpClient();
-                    return client.Send(new HttpRequestMessage(method, uri)).StatusCode;
-                }
-
-            }
-
-            class IntegrationFactory : HttpOperationHandlerFactory
-            {
-                private readonly IPrincipal _princ;
-                private readonly Policy _policy;
-                public IntegrationFactory(IPrincipal princ, Policy policy)
-                {
-                    _princ = princ;
-                    _policy = policy;
-                }
-
-                protected override System.Collections.ObjectModel.Collection<Microsoft.ApplicationServer.Http.Dispatcher.HttpOperationHandler> OnCreateRequestHandlers(System.ServiceModel.Description.ServiceEndpoint endpoint, HttpOperationDescription operation)
-                {
-                    var coll = base.OnCreateRequestHandlers(endpoint, operation);
-                    coll.Add(new InjectorOperationHandler().For<IPrincipal>("principal", _princ));
-                    coll.Add(_policy.GetEnforcementHandlerFor(operation));
-                    return coll;
-                }
-            }
-
-            class InjectorOperationHandler : HttpOperationHandler
-            {
-                private readonly ICollection<Tuple<string, object, Type>> _prms = new Collection<Tuple<string, object,Type>>();
-
-                public InjectorOperationHandler For<T>(string name, T obj)
-                {
-                    _prms.Add(Tuple.Create(name,obj as object,typeof(T)));
-                    return this;
-                }
-
-                protected override IEnumerable<HttpParameter> OnGetInputParameters()
-                {
-                    yield break;
-                }
-
-                protected override IEnumerable<HttpParameter> OnGetOutputParameters()
-                {
-                    return _prms.Select(p => new HttpParameter(p.Item1, p.Item3));
-                }
-
-                protected override object[] OnHandle(object[] input)
-                {
-                    return _prms.Select(p => p.Item2).ToArray();
-                }
-            }
+            var ctx = new IntegrationContext<TheService>(Root, new TestPolicy1());
+            Assert.AreEqual(HttpStatusCode.OK, ctx.Send(HttpMethod.Delete, "/Alice/1"));
         }
-
     }
 }
