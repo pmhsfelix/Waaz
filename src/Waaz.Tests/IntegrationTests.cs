@@ -38,11 +38,11 @@ namespace Waaz.Tests
 
         private class TestPolicy1 : AuthorizationPolicyFor<TheService>
         {
-            Role admin = new Role("admin");
-            Role root = new Role("root");
-
             public TestPolicy1()
             {
+                var admin = new Role("admin");
+                var root = new Role("root");
+
                 ForAll.Deny.IfAnonymous();
                 //ForAll.Allow.Role("admin");
                 ForAll.Allow.IfInRoles(admin || root);
@@ -51,9 +51,18 @@ namespace Waaz.Tests
                 // alt: ForServiceMethod(s => s.GetOper(default(string), default(int))).Allow.IfAuthenticated();
                 For(Post || Put).Allow.If<string, IPrincipal>(
                     (user, principal) => user == principal.Identity.Name);
+                    
 
-                ForServiceMethod(s => s.DeleteOper(default(string), default(int)))
-                    .Allow.If<string, IPrincipal>((user, principal) => user == principal.Identity.Name);
+                //ForServiceMethod(s => s.DeleteOper(default(string), default(int)))
+                //    .Allow.If<string, IPrincipal>((user, principal) => user == principal.Identity.Name);
+
+                For(Delete).Allow.When<string,IPrincipal>(CheckUserName);
+
+            }
+
+            static bool CheckUserName(string user, IPrincipal principal)
+            {
+                return user == principal.Identity.Name;
             }
         }
 

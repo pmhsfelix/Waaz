@@ -39,7 +39,7 @@ namespace Waaz
             _r = r;
         }
 
-        public IEnumerable<HttpParameter> InputParameters
+        public new IEnumerable<HttpParameter> InputParameters
         {
             get { return _p.InputParameters; }
         }
@@ -260,6 +260,19 @@ namespace Waaz
         {
             return rb.DefinePredicate(MakeHttpOperationHandler.From(p));
         }
+
+        public static OperPredAndRuleBuilder When<T>(this OperRuleBuilder rb, Func<T,bool> p)
+        {
+            return rb.DefinePredicate(MakeHttpOperationHandler.From(p));
+            return null;
+        }
+
+        
+        public static OperPredAndRuleBuilder When<T1, T2>(this OperRuleBuilder rb, Func<T1, T2, bool> p)
+        {
+            return rb.DefinePredicate(MakeHttpOperationHandler.From(p));
+            return null;
+        }
     }
 
     public static class MakeHttpOperationHandler
@@ -291,6 +304,31 @@ namespace Waaz
             }
         }
 
+        private class FuncHttpOperationHandler : HttpOperationHandler
+        {
+            private readonly Delegate _del;
+
+            public FuncHttpOperationHandler(Delegate del)
+            {
+                _del = del;
+            }
+
+            protected override IEnumerable<HttpParameter> OnGetInputParameters()
+            {
+                return _del.Method.GetParameters().Select(p => new HttpParameter(p.Name, p.ParameterType));
+            }
+
+            protected override IEnumerable<HttpParameter> OnGetOutputParameters()
+            {
+                yield return new HttpParameter("result", typeof(bool));
+            }
+
+            protected override object[] OnHandle(object[] input)
+            {
+                return new object[] {_del.DynamicInvoke(input)};
+            }
+        }
+
 
         public static HttpOperationHandler From<T>(Expression<Func<T, bool>> expr)
         {
@@ -300,6 +338,16 @@ namespace Waaz
         public static HttpOperationHandler From<T1, T2>(Expression<Func<T1, T2, bool>> expr)
         {
             return new ExpressionHttpOperationHandler(expr);
+        }
+
+        public static HttpOperationHandler From<T>(Func<T, bool> f)
+        {
+            return new FuncHttpOperationHandler(f);
+        }
+
+        public static HttpOperationHandler From<T1, T2>(Func<T1, T2, bool> f)
+        {
+            return new FuncHttpOperationHandler(f);
         }
     }
 
