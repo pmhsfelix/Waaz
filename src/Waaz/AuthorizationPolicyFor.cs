@@ -7,12 +7,12 @@ namespace Waaz
 {
     public abstract class AuthorizationPolicyFor<ST> : Policy
     {
-        public OperPredAndRuleBuilder For(Pred<HttpOperationDescription> p)
+        protected OperPredAndRuleBuilder For(Pred<HttpOperationDescription> p)
         {
             return new OperPredAndRuleBuilder(this, p);
         }
 
-        public OperPredAndRuleBuilder ForServiceMethod(Expression<Action<ST>> e)
+        protected OperPredAndRuleBuilder ForServiceMethod(Expression<Action<ST>> e)
         {
             var body = e.Body as MethodCallExpression;
             if(body == null) throw new Exception("Invalid method expression");
