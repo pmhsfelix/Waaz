@@ -44,20 +44,13 @@ namespace Waaz.Tests
                 var root = new Role("root");
 
                 ForAll.Deny.IfAnonymous();
-                //ForAll.Allow.Role("admin");
                 ForAll.Allow.IfInRoles(admin || root);
                 For(Get).Allow.IfAuthenticated();
                 // alt: For(OperationNamed("GetOper")).Allow.IfAuthenticated();
                 // alt: ForServiceMethod(s => s.GetOper(default(string), default(int))).Allow.IfAuthenticated();
                 For(Post || Put).Allow.If<string, IPrincipal>(
                     (user, principal) => user == principal.Identity.Name);
-                    
-
-                //ForServiceMethod(s => s.DeleteOper(default(string), default(int)))
-                //    .Allow.If<string, IPrincipal>((user, principal) => user == principal.Identity.Name);
-
                 For(Delete).Allow.When<string,IPrincipal>(CheckUserName);
-
             }
 
             static bool CheckUserName(string user, IPrincipal principal)
