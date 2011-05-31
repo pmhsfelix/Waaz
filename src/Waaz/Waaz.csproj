@@ -72,10 +72,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="AuthorizationPolicyFor.cs" />
+    <Compile Include="CompositeHttpOperationHandler.cs" />
+    <Compile Include="EnforcementHttpOperationHandler.cs" />
+    <Compile Include="IOperRule.cs" />
+    <Compile Include="MakeHttpOperationHandler.cs" />
+    <Compile Include="OperPredAndRuleBuilder.cs" />
+    <Compile Include="OperRuleBuilder.cs" />
+    <Compile Include="OperRuleSet.cs" />
+    <Compile Include="OperRuleTemplate.cs" />
+    <Compile Include="Policy.cs" />
     <Compile Include="Pred.cs" />
+    <Compile Include="PrincipalExtensions.cs" />
+    <Compile Include="PrincipalPredOperationHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Roles.cs" />
+    <Compile Include="RuleResult.cs" />
+    <Compile Include="SomethingExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

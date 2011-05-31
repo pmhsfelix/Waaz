@@ -60,6 +60,7 @@ namespace Waaz.Tests
 
             }
 
+            [Condition("SameUserName")]
             static bool CheckUserName(string user, IPrincipal principal)
             {
                 return user == principal.Identity.Name;

@@ -12,7 +12,7 @@ using Waaz;
 namespace Waaz.Tests
 {
     [TestFixture]
-    internal class SomeTests
+    internal class AuthorizationPolicyForTests
     {
         private class Policy1 : AuthorizationPolicyFor<string>
         {
